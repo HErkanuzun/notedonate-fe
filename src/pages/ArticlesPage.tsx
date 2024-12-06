@@ -52,23 +52,20 @@ function ArticlesPage({ isDark }: ArticlesPageProps) {
   const fetchArticles = async (pageNum: number) => {
     try {
       setIsLoadingMore(pageNum > 1);
-
       const response = await ArticleService.getAllArticles({ page: pageNum });
-      console.log('Raw API Response:', response); // Debug için ekledim
-
-      // API yanıtının yapısını kontrol et
-      const articles = response.data.articles;
-      console.log('Articles from API:', articles); // Debug için ekledim
-
-      if (pageNum === 1) {
-        setArticles(articles);
-      } else {
-        setArticles(prev => [...prev, ...articles]);
-      }
       
-      setHasMore(response.data.pagination.has_more);
+      if (response && response.status === 'success') {
+        if (pageNum === 1) {
+          setArticles(response.data);
+        } else {
+          setArticles(prev => [...prev, ...response.data]);
+        }
+        setHasMore(response.data.length === 12);
+      }
     } catch (error) {
       console.error('Error fetching articles:', error);
+      setArticles([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);

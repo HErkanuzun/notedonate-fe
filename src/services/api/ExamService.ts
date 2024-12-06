@@ -10,14 +10,31 @@ interface ExamsResponse {
 interface GetExamsParams {
   page?: number;
   perPage?: number;
+  filters?: {
+    university?: string;
+    department?: string;
+    year?: number;
+    semester?: string;
+  };
 }
 
-export const getAllExams = async ({ page = 1, perPage = 12 }: GetExamsParams = {}): Promise<ExamsResponse> => {
+export const getAllExams = async ({ page = 1, perPage = 12, filters }: GetExamsParams = {}): Promise<ExamsResponse> => {
   try {
-    const response = await api.get(`/public/exams?page=${page}&per_page=${perPage}`);
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('per_page', perPage.toString());
+
+    if (filters) {
+      if (filters.university) params.append('university', filters.university);
+      if (filters.department) params.append('department', filters.department);
+      if (filters.year) params.append('year', filters.year.toString());
+      if (filters.semester) params.append('semester', filters.semester);
+    }
+
+    const response = await api.get(`/public/exams?${params.toString()}`);
     return {
       status: 'success',
-      data: response.data.data
+      data: Array.isArray(response.data.data) ? response.data.data : []
     };
   } catch (error) {
     if (isAxiosError(error) && error.response) {

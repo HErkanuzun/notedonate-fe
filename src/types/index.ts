@@ -51,30 +51,47 @@ export interface Article {
 }
 
 export interface FilterOptions {
-  sortBy?: 'date' | 'title' | 'university';
-  sortOrder?: 'asc' | 'desc';
   university?: string;
   department?: string;
-  year?: string;
+  year?: number | null;
   semester?: string;
+  search?: string;
+  sortBy?: 'date' | 'title' | 'university';
+  sortOrder?: 'asc' | 'desc';
 }
 
 export interface Exam {
-  id: number;
-  name: string;
-  title?: string; // For backwards compatibility
-  description: string | null;
-  total_marks: number;
-  duration: number;
-  status: 'active' | 'completed' | 'scheduled';
+  id: string;
+  title: string;
+  subject?: string;
+  description?: string;
   university?: string;
   department?: string;
   year?: number;
   semester?: string;
-  created_by: number;
-  creator?: User;
-  storage_link?: string;
-  imageUrl?: string;
-  created_at: string;
-  updated_at: string;
+  fileUrl?: string;
+  authorId: string;
+  uploadDate: string;
+  status: 'draft' | 'scheduled' | 'published';
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'user' | 'admin';
+  university?: string;
+  department?: string;
+  avatar?: string;
+  createdAt: string;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  error: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, name: string) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (data: Partial<User>) => Promise<void>;
 }

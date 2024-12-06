@@ -1,19 +1,10 @@
 import api from './api';
 import { Article } from '../../types';
+import { isAxiosError } from 'axios';
 
 interface ArticlesResponse {
-  status: boolean;
-  message: string;
-  data: {
-    articles: Article[];
-    pagination: {
-      current_page: number;
-      last_page: number;
-      per_page: number;
-      total: number;
-      has_more: boolean;
-    }
-  };
+  status: string;
+  data: Article[];
 }
 
 interface GetArticlesParams {
@@ -21,13 +12,21 @@ interface GetArticlesParams {
   perPage?: number;
 }
 
-export const getAllArticles = async ({ page = 1, perPage = 9 }: GetArticlesParams = {}) => {
+export const getAllArticles = async ({ page = 1, perPage = 12 }: GetArticlesParams = {}): Promise<ArticlesResponse> => {
   try {
     const response = await api.get(`/public/articles?page=${page}&per_page=${perPage}`);
-    return response.data;
+    return {
+      status: 'success',
+      data: response.data.data
+    };
   } catch (error) {
-    console.error('Error fetching articles:', error);
-    throw error;
+    if (isAxiosError(error) && error.response) {
+      console.error('Error fetching articles:', error.response);
+      throw new Error(`Error: ${error.response.data.message}`);
+    } else {
+      console.error("An unknown error occurred");
+      throw new Error('An unexpected error occurred.');
+    }
   }
 };
 

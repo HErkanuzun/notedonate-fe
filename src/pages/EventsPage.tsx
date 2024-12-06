@@ -41,15 +41,18 @@ function EventsPage({ isDark }: EventsPageProps) {
       setIsLoadingMore(pageNum > 1);
       const response = await EventService.getAllEvents({ page: pageNum });
       
-      if (pageNum === 1) {
-        setEvents(response.data.events);
-      } else {
-        setEvents(prev => [...prev, ...response.data.events]);
+      if (response && response.status === 'success') {
+        if (pageNum === 1) {
+          setEvents(response.data);
+        } else {
+          setEvents(prev => [...prev, ...response.data]);
+        }
+        setHasMore(response.data.length === 12);
       }
-      
-      setHasMore(response.data.pagination.has_more);
     } catch (error) {
       console.error('Error fetching events:', error);
+      setEvents([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);

@@ -1,19 +1,10 @@
 import api from './api';
 import { Event } from '../../types';
+import { isAxiosError } from 'axios';
 
 interface EventsResponse {
-  status: boolean;
-  message: string;
-  data: {
-    events: Event[];
-    pagination: {
-      current_page: number;
-      last_page: number;
-      per_page: number;
-      total: number;
-      has_more: boolean;
-    }
-  };
+  status: string;
+  data: Event[];
 }
 
 interface GetEventsParams {
@@ -21,13 +12,21 @@ interface GetEventsParams {
   perPage?: number;
 }
 
-export const getAllEvents = async ({ page = 1, perPage = 9 }: GetEventsParams = {}) => {
+export const getAllEvents = async ({ page = 1, perPage = 12 }: GetEventsParams = {}): Promise<EventsResponse> => {
   try {
     const response = await api.get(`/public/events?page=${page}&per_page=${perPage}`);
-    return response.data;
+    return {
+      status: 'success',
+      data: response.data.data
+    };
   } catch (error) {
-    console.error('Error fetching events:', error);
-    throw error;
+    if (isAxiosError(error) && error.response) {
+      console.error('Error fetching events:', error.response);
+      throw new Error(`Error: ${error.response.data.message}`);
+    } else {
+      console.error("An unknown error occurred");
+      throw new Error('An unexpected error occurred.');
+    }
   }
 };
 

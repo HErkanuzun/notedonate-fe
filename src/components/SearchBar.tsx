@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Search } from 'lucide-react';
+import debounce from 'lodash/debounce';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -8,12 +9,28 @@ interface SearchBarProps {
 }
 
 function SearchBar({ onSearch, placeholder = 'Ara...', isDark }: SearchBarProps) {
+  const [inputValue, setInputValue] = useState('');
+
+  const debouncedSearch = useCallback(
+    debounce((query: string) => {
+      onSearch(query);
+    }, 300),
+    [onSearch]
+  );
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputValue(value);
+    debouncedSearch(value);
+  };
+
   return (
     <div className={`relative w-full max-w-2xl mx-auto ${isDark ? 'text-white' : 'text-gray-900'}`}>
       <input
         type="text"
+        value={inputValue}
         placeholder={placeholder}
-        onChange={(e) => onSearch(e.target.value)}
+        onChange={handleInputChange}
         className={`w-full px-4 py-3 pl-12 rounded-lg outline-none transition-all
           ${isDark ? 'bg-gray-800 focus:bg-gray-700' : 'bg-white focus:bg-gray-50'}
           border ${isDark ? 'border-gray-700' : 'border-gray-200'}

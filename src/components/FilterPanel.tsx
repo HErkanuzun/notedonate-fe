@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Filter as FilterIcon, ChevronDown } from 'lucide-react';
 import { FilterOptions } from '../types';
 
@@ -21,9 +21,55 @@ function FilterPanel({
   years,
   semesters
 }: FilterPanelProps) {
-  const handleChange = (key: keyof FilterOptions, value: string) => {
-    onFilterChange({ ...options, [key]: value });
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  const handleChange = (key: keyof FilterOptions, value: string | number | null) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      const newOptions = { ...options, [key]: value };
+      onFilterChange(newOptions);
+    }, 300);
   };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  const renderSelect = (
+    label: string,
+    key: keyof FilterOptions,
+    options: string[],
+    placeholder: string = 'Tümü'
+  ) => (
+    <div>
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      <div className="relative">
+        <select
+          value={options[key] || ''}
+          onChange={(e) => handleChange(key, e.target.value || null)}
+          className={`w-full pl-3 pr-10 py-2 rounded-lg appearance-none cursor-pointer
+            ${isDark ? 'bg-gray-700' : 'bg-gray-50'} border 
+            ${isDark ? 'border-gray-600' : 'border-gray-200'}
+            focus:ring-2 focus:ring-blue-500 outline-none`}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+      </div>
+    </div>
+  );
 
   return (
     <div className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
@@ -33,89 +79,10 @@ function FilterPanel({
       </div>
 
       <div className="space-y-4">
-        {/* University Filter */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Üniversite</label>
-          <div className="relative">
-            <select
-              value={options.university || ''}
-              onChange={(e) => handleChange('university', e.target.value)}
-              className={`w-full pl-3 pr-10 py-2 rounded-lg appearance-none cursor-pointer
-                ${isDark ? 'bg-gray-700' : 'bg-gray-50'} border 
-                ${isDark ? 'border-gray-600' : 'border-gray-200'}
-                focus:ring-2 focus:ring-blue-500 outline-none`}
-            >
-              <option value="">Tümü</option>
-              {universities.map((uni) => (
-                <option key={uni} value={uni}>{uni}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" size={16} />
-          </div>
-        </div>
-
-        {/* Department Filter */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Bölüm</label>
-          <div className="relative">
-            <select
-              value={options.department || ''}
-              onChange={(e) => handleChange('department', e.target.value)}
-              className={`w-full pl-3 pr-10 py-2 rounded-lg appearance-none cursor-pointer
-                ${isDark ? 'bg-gray-700' : 'bg-gray-50'} border 
-                ${isDark ? 'border-gray-600' : 'border-gray-200'}
-                focus:ring-2 focus:ring-blue-500 outline-none`}
-            >
-              <option value="">Tümü</option>
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>{dept}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" size={16} />
-          </div>
-        </div>
-
-        {/* Year Filter */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Yıl</label>
-          <div className="relative">
-            <select
-              value={options.year || ''}
-              onChange={(e) => handleChange('year', e.target.value)}
-              className={`w-full pl-3 pr-10 py-2 rounded-lg appearance-none cursor-pointer
-                ${isDark ? 'bg-gray-700' : 'bg-gray-50'} border 
-                ${isDark ? 'border-gray-600' : 'border-gray-200'}
-                focus:ring-2 focus:ring-blue-500 outline-none`}
-            >
-              <option value="">Tümü</option>
-              {years.map((year) => (
-                <option key={year} value={year}>{year}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" size={16} />
-          </div>
-        </div>
-
-        {/* Semester Filter */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Dönem</label>
-          <div className="relative">
-            <select
-              value={options.semester || ''}
-              onChange={(e) => handleChange('semester', e.target.value)}
-              className={`w-full pl-3 pr-10 py-2 rounded-lg appearance-none cursor-pointer
-                ${isDark ? 'bg-gray-700' : 'bg-gray-50'} border 
-                ${isDark ? 'border-gray-600' : 'border-gray-200'}
-                focus:ring-2 focus:ring-blue-500 outline-none`}
-            >
-              <option value="">Tümü</option>
-              {semesters.map((semester) => (
-                <option key={semester} value={semester}>{semester}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" size={16} />
-          </div>
-        </div>
+        {renderSelect('Üniversite', 'university', universities)}
+        {renderSelect('Bölüm', 'department', departments)}
+        {renderSelect('Yıl', 'year', years)}
+        {renderSelect('Dönem', 'semester', semesters)}
 
         {/* Sort Options */}
         <div>

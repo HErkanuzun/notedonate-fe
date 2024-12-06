@@ -20,6 +20,7 @@ export interface Note {
 export interface Exam {
   id: number;
   name: string;
+  title: string;
   description: string;
   total_marks: number;
   duration: number;

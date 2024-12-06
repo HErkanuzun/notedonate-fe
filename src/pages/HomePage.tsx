@@ -98,12 +98,12 @@ function HomePage({ isDark }: HomePageProps) {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {isLoggedIn ? (
                 <button
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => navigate('/profile')}
                   className="px-8 py-4 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl
                     hover:from-green-700 hover:to-teal-700 transform hover:scale-105 transition-all duration-200
                     flex items-center justify-center gap-2 text-lg font-medium shadow-lg"
                 >
-                  Dashboard
+                  Profil
                   <ArrowRight className="animate-bounce" />
                 </button>
               ) : (
