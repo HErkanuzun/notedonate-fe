@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import axios, { AxiosInstance } from 'axios';
 import { User } from '../types';
 import { toast } from 'react-toastify';
+import Cookies from 'js-cookie';
 
 // Create axios instance with proper configuration
 const api: AxiosInstance = axios.create({
@@ -14,10 +15,12 @@ const api: AxiosInstance = axios.create({
   withCredentials: true
 });
 
+const TOKEN_KEY = 'auth_token';
+
 // Add request interceptor
 api.interceptors.request.use(
   async (config) => {
-    const token = localStorage.getItem('auth_token');
+    const token = Cookies.get(TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -34,7 +37,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('auth_token');
+      Cookies.remove(TOKEN_KEY);
     }
     return Promise.reject(error);
   }
@@ -59,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Initialize auth state
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('auth_token');
+      const token = Cookies.get(TOKEN_KEY);
       if (token) {
         try {
           const response = await api.get('/api/v1/auth/user');
@@ -67,13 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(response.data.user);
             setIsLoggedIn(true);
           } else {
-            localStorage.removeItem('auth_token');
+            Cookies.remove(TOKEN_KEY);
             setIsLoggedIn(false);
             setUser(null);
           }
         } catch (error) {
           console.error('Token verification failed:', error);
-          localStorage.removeItem('auth_token');
+          Cookies.remove(TOKEN_KEY);
           setIsLoggedIn(false);
           setUser(null);
         }
@@ -95,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await api.post('/api/v1/auth/login', { email, password });
       
       if (response.data?.token && response.data?.user) {
-        localStorage.setItem('auth_token', response.data.token);
+        Cookies.set(TOKEN_KEY, response.data.token, { expires: 1, secure: false, sameSite: 'Lax' });
         setUser(response.data.user);
         setIsLoggedIn(true);
         toast.success('Login successful!');
@@ -104,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      localStorage.removeItem('auth_token');
+      Cookies.remove(TOKEN_KEY);
       setIsLoggedIn(false);
       setUser(null);
       
@@ -135,7 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (response.data?.token && response.data?.user) {
-        localStorage.setItem('auth_token', response.data.token);
+        Cookies.set(TOKEN_KEY, response.data.token, { expires: 10, secure: false, sameSite: 'Lax' });
         setUser(response.data.user);
         setIsLoggedIn(true);
         toast.success('Registration successful!');
@@ -158,13 +161,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await api.post('/api/v1/auth/logout');
-      localStorage.removeItem('auth_token');
+      Cookies.remove(TOKEN_KEY);
       setIsLoggedIn(false);
       setUser(null);
       toast.success('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
-      localStorage.removeItem('auth_token');
+      Cookies.remove(TOKEN_KEY);
       setIsLoggedIn(false);
       setUser(null);
     }

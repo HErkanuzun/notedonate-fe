@@ -41,17 +41,18 @@ function NotesPage({ isDark }: NotesPageProps) {
       setIsLoadingMore(pageNum > 1);
       const response = await NoteService.getAllNotes({ page: pageNum });
       
-      if (response.status && response.data) {
+      if (response && response.status === 'success') {
         if (pageNum === 1) {
-          setNotes(response.data.notes);
+          setNotes(response.data);
         } else {
-          setNotes(prev => [...prev, ...response.data.notes]);
+          setNotes(prev => [...prev, ...response.data]);
         }
-        
-        setHasMore(response.data.pagination.has_more);
+        setHasMore(response.data.length === 12); // If we received full page, assume there's more
       }
     } catch (error) {
       console.error('Error fetching notes:', error);
+      setNotes([]);
+      setHasMore(false);
     } finally {
       setIsLoading(false);
       setIsLoadingMore(false);
@@ -62,7 +63,7 @@ function NotesPage({ isDark }: NotesPageProps) {
     setIsLoading(true);
     setPage(1);
     fetchNotes(1);
-  }, [filterOptions]);
+  }, []);
 
   useEffect(() => {
     if (page > 1) {

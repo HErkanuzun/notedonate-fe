@@ -1,55 +1,32 @@
 import api from './api';
 import { Exam } from '../../types';
+import { isAxiosError } from 'axios';
 
 interface ExamsResponse {
   status: string;
-  data: {
-    exams: Exam[];
-    pagination: {
-      current_page: number;
-      last_page: number;
-      per_page: number;
-      total: number;
-      has_more: boolean;
-    }
-  };
+  data: Exam[];
 }
 
 interface GetExamsParams {
   page?: number;
   perPage?: number;
-  status?: string;
-  university?: string;
-  department?: string;
-  year?: number;
-  semester?: string;
 }
 
-export const getAllExams = async ({ 
-  page = 1, 
-  perPage = 9,
-  status,
-  university,
-  department,
-  year,
-  semester
-}: GetExamsParams = {}) => {
+export const getAllExams = async ({ page = 1, perPage = 12 }: GetExamsParams = {}): Promise<ExamsResponse> => {
   try {
-    const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('per_page', perPage.toString());
-    
-    if (status) params.append('status', status);
-    if (university) params.append('university', university);
-    if (department) params.append('department', department);
-    if (year) params.append('year', year.toString());
-    if (semester) params.append('semester', semester);
-
-    const response = await api.get(`/public/exams?${params.toString()}`);
-    return response.data;
+    const response = await api.get(`/public/exams?page=${page}&per_page=${perPage}`);
+    return {
+      status: 'success',
+      data: response.data.data
+    };
   } catch (error) {
-    console.error('Error fetching exams:', error);
-    throw error;
+    if (isAxiosError(error) && error.response) {
+      console.error('Error fetching exams:', error.response);
+      throw new Error(`Error: ${error.response.data.message}`);
+    } else {
+      console.error("An unknown error occurred");
+      throw new Error('An unexpected error occurred.');
+    }
   }
 };
 

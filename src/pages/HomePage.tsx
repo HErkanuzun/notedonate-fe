@@ -96,15 +96,27 @@ function HomePage({ isDark }: HomePageProps) {
               Notlarını paylaş, bilgini artır, başarıya ulaş. Binlerce öğrencinin bir parçası olduğu akademik topluluğa katıl.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => navigate('/register')}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl
-                  hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200
-                  flex items-center justify-center gap-2 text-lg font-medium shadow-lg"
-              >
-                Hemen Başla
-                <ArrowRight className="animate-bounce" />
-              </button>
+              {isLoggedIn ? (
+                <button
+                  onClick={() => navigate('/dashboard')}
+                  className="px-8 py-4 bg-gradient-to-r from-green-600 to-teal-600 text-white rounded-xl
+                    hover:from-green-700 hover:to-teal-700 transform hover:scale-105 transition-all duration-200
+                    flex items-center justify-center gap-2 text-lg font-medium shadow-lg"
+                >
+                  Dashboard
+                  <ArrowRight className="animate-bounce" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate('/register')}
+                  className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl
+                    hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200
+                    flex items-center justify-center gap-2 text-lg font-medium shadow-lg"
+                >
+                  Hemen Başla
+                  <ArrowRight className="animate-bounce" />
+                </button>
+              )}
               <button
                 onClick={() => navigate('/about')}
                 className={`px-8 py-4 rounded-xl transform hover:scale-105 transition-all duration-200
