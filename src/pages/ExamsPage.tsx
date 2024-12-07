@@ -64,14 +64,14 @@ function ExamsPage({ isDark }: ExamsPageProps) {
         filters
       });
       
-      if (response && response.data) {
-        const { exams, meta } = response.data;
+      if (response && response.status === 'success') {
+        const { data, meta } = response.data;
         if (pageNum === 1) {
-          setExams(exams);
+          setExams(data);
         } else {
-          setExams(prev => [...prev, ...exams]);
+          setExams(prev => [...prev, ...data]);
         }
-        setHasMore(pageNum < meta.last_page);
+        setHasMore(meta.current_page < meta.last_page);
       }
     } catch (error) {
       console.error('Error fetching exams:', error);

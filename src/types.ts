@@ -1,35 +1,48 @@
 export interface Note {
   id: number;
-  title: string;
-  subject: string;
-  author: string;
-  date: string;
-  likes: number;
-  downloads: number;
-  imageUrl: string;
-  storage_link?: string;
-  content?: string;
-  university: string;
-  department: string;
-  year: string;
-  semester: string;
-  isFavorite?: boolean;
-  driveFileId?: string;
+  type: string;
+  attributes: {
+    title: string;
+    content: string;
+    user_id: number;
+    file_path: string;
+    category: string;
+    status: string;
+    cover_image: string;
+    storage_path: string;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    author: string;
+    university: string;
+    department: string;
+    subject: string;
+    semester: string;
+    year: string;
+    likes: number;
+    downloads: number;
+  };
 }
 
 export interface Exam {
   id: number;
-  name: string;
-  title: string;
-  description: string;
-  total_marks: number;
-  duration: number;
-  created_by: number;
-  status: string;
-  questions?: Question[];
-  created_at?: string;
-  updated_at?: string;
-  storage_link?: string;
+  type: string;
+  attributes: {
+    title: string;
+    description: string;
+    total_marks: number;
+    duration: number;
+    status: string;
+    subject: string;
+    cover_image: string;
+    created_at: string;
+    updated_at: string;
+    university: string;
+    department: string;
+    author: string;
+    questions_count: number;
+    questions?: Question[];
+  };
 }
 
 export interface Question {

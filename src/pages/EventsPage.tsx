@@ -4,7 +4,7 @@ import SearchBar from '../components/SearchBar';
 import EventCard from '../components/EventCard';
 import FilterPanel from '../components/FilterPanel';
 import LoadingCard from '../components/LoadingCard';
-import * as EventService from '../services/api/EventService';
+import { getAllEvents } from '../services/api/EventService';
 import { FilterOptions, Event } from '../types';
 
 interface EventsPageProps {
@@ -25,6 +25,8 @@ function EventsPage({ isDark }: EventsPageProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
 
+  const debouncedSearchQuery = searchQuery;
+
   const lastEventElementRef = useCallback((node: HTMLDivElement | null) => {
     if (isLoadingMore) return;
     if (observer.current) observer.current.disconnect();
@@ -36,13 +38,20 @@ function EventsPage({ isDark }: EventsPageProps) {
     if (node) observer.current.observe(node);
   }, [isLoadingMore, hasMore]);
 
-  const fetchEvents = async (pageNum: number) => {
+  const fetchEvents = useCallback(async () => {
     try {
-      setIsLoadingMore(pageNum > 1);
-      const response = await EventService.getAllEvents({ page: pageNum });
+      setIsLoading(true);
+      const response = await getAllEvents({
+        page,
+        filters: {
+          search: debouncedSearchQuery,
+          ...filterOptions,
+        },
+      });
       
       if (response && response.status === 'success') {
-        if (pageNum === 1) {
+        console.log('Events data:', response.data);
+        if (page === 1) {
           setEvents(response.data);
         } else {
           setEvents(prev => [...prev, ...response.data]);
@@ -57,17 +66,17 @@ function EventsPage({ isDark }: EventsPageProps) {
       setIsLoading(false);
       setIsLoadingMore(false);
     }
-  };
+  }, [page, debouncedSearchQuery, filterOptions]);
 
   useEffect(() => {
     setIsLoading(true);
     setPage(1);
-    fetchEvents(1);
+    fetchEvents();
   }, [filterOptions]);
 
   useEffect(() => {
     if (page > 1) {
-      fetchEvents(page);
+      fetchEvents();
     }
   }, [page]);
 

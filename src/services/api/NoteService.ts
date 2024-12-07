@@ -1,23 +1,46 @@
-import api from './api';
+import { api } from './api';
 import { Note } from '../../types';
 import { isAxiosError } from 'axios';
 
 interface NotesResponse {
   status: string;
-  data: Note[];
+  data: {
+    data: Note[];
+    meta: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
 }
 
 interface GetNotesParams {
   page?: number;
   perPage?: number;
+  filters?: {
+    university?: string;
+    department?: string;
+    search?: string;
+  };
 }
 
-export const getAllNotes = async ({ page = 1, perPage = 12 }: GetNotesParams = {}): Promise<NotesResponse> => {
+export const getAllNotes = async ({ page = 1, perPage = 12, filters }: GetNotesParams = {}): Promise<NotesResponse> => {
   try {
-    const response = await api.get(`/public/notes?page=${page}&per_page=${perPage}`);
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('per_page', perPage.toString());
+
+    if (filters) {
+      if (filters.university) params.append('university', filters.university);
+      if (filters.department) params.append('department', filters.department);
+      if (filters.search) params.append('search', filters.search);
+    }
+
+    const response = await api.get(`/api/v1/public/notes?${params.toString()}`);
     return {
       status: 'success',
-      data: response.data.data
+      data: response.data
     };
   } catch (error) {
     if (isAxiosError(error) && error.response) {
@@ -30,10 +53,13 @@ export const getAllNotes = async ({ page = 1, perPage = 12 }: GetNotesParams = {
   }
 };
 
-export const getNote = async (id: number) => {
+export const getNote = async (id: number): Promise<{ status: string; data: Note }> => {
   try {
-    const response = await api.get(`/public/notes/${id}`);
-    return response.data;
+    const response = await api.get(`/api/v1/public/notes/${id}`);
+    return {
+      status: 'success',
+      data: response.data.data
+    };
   } catch (error) {
     if (isAxiosError(error) && error.response) {
       console.error('Error fetching note:', error.response);

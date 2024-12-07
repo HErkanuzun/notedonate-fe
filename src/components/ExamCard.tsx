@@ -1,6 +1,6 @@
 import React from 'react';
-import { Clock, Award } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Clock, Award, Building2, GraduationCap } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Exam } from '../types';
 
 interface ExamCardProps {
@@ -9,8 +9,9 @@ interface ExamCardProps {
 }
 
 function ExamCard({ exam, isDark }: ExamCardProps) {
+  const navigate = useNavigate();
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'active':
         return isDark ? 'bg-green-900/30 text-green-500' : 'bg-green-100 text-green-600';
       case 'completed':
@@ -21,57 +22,49 @@ function ExamCard({ exam, isDark }: ExamCardProps) {
   };
 
   return (
-    <Link to={`/exams/${exam.id}`}>
-      <div className={`group relative overflow-hidden rounded-xl transition-all duration-300 
-        transform hover:-translate-y-2 ${isDark ? 'bg-gray-800/50' : 'bg-white/50'}
-        backdrop-blur-xl border border-opacity-20 
-        ${isDark ? 'border-gray-700' : 'border-gray-200'} shadow-lg hover:shadow-xl`}
-      >
-        <div className="p-6">
-          <div className="flex flex-wrap items-center gap-2 text-sm mb-2">
-            <span className={`px-3 py-1 rounded-full ${getStatusColor(exam.status || '')}`}>
-              {exam.status ? exam.status.charAt(0).toUpperCase() + exam.status.slice(1) : ''}
-            </span>
-          </div>
-          
-          <h3 className="text-xl font-semibold mb-2 line-clamp-2">
-            {exam.name || exam.title}
-          </h3>
-          
-          {exam.description && (
-            <p className="text-sm opacity-75 mb-4 line-clamp-2">
-              {exam.description}
-            </p>
-          )}
+    <div
+      onClick={() => navigate(`/exams/${exam.id}`)}
+      className={`cursor-pointer rounded-xl ${isDark ? 'bg-gray-800/50' : 'bg-white/50'} backdrop-blur-xl border border-opacity-20 ${isDark ? 'border-gray-700' : 'border-gray-200'} p-6 hover:shadow-lg transition-all duration-200`}
+    >
+      <div className="flex flex-wrap items-center gap-2 text-sm mb-2">
+        <span className={`px-3 py-1 rounded-full ${getStatusColor(exam.attributes?.status || '')}`}>
+          {exam.attributes?.status ? exam.attributes.status.charAt(0).toUpperCase() + exam.attributes.status.slice(1) : 'Scheduled'}
+        </span>
+      </div>
+      
+      <h3 className="text-xl font-semibold mb-2 line-clamp-2">
+        {exam.attributes?.title || 'Untitled Exam'}
+      </h3>
+      
+      {exam.attributes?.description && (
+        <p className="text-sm opacity-75 mb-4 line-clamp-2">
+          {exam.attributes.description}
+        </p>
+      )}
 
-          <div className="space-y-2 mb-4">
-            <div className="flex items-center gap-2 text-sm opacity-75">
-              <Clock size={16} />
-              <span>{exam.duration ? `${exam.duration} minutes` : 'Duration not set'}</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm opacity-75">
-              <Award size={16} />
-              <span>{exam.total_marks ? `${exam.total_marks} points` : 'Points not set'}</span>
-            </div>
-          </div>
-
-          {(exam.university || exam.department) && (
-            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-              {exam.university && (
-                <div className="text-sm opacity-75">
-                  University: {exam.university}
-                </div>
-              )}
-              {exam.department && (
-                <div className="text-sm opacity-75">
-                  Department: {exam.department}
-                </div>
-              )}
-            </div>
-          )}
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center gap-2 text-sm opacity-75">
+          <Clock size={16} />
+          <span>{exam.attributes?.duration ? `${exam.attributes.duration} minutes` : 'Duration not set'}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm opacity-75">
+          <Award size={16} />
+          <span>{exam.attributes?.total_marks ? `${exam.attributes.total_marks} marks` : 'Marks not set'}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm opacity-75">
+          <Building2 size={16} />
+          <span>{exam.attributes?.university || 'University not set'}</span>
+        </div>
+        <div className="flex items-center gap-2 text-sm opacity-75">
+          <GraduationCap size={16} />
+          <span>{exam.attributes?.department || 'Department not set'}</span>
         </div>
       </div>
-    </Link>
+
+      <div className="flex items-center gap-2 text-sm opacity-75">
+        <span>Created {new Date(exam.attributes?.created_at || Date.now()).toLocaleDateString('tr-TR')}</span>
+      </div>
+    </div>
   );
 }
 

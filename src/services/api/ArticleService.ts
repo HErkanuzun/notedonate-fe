@@ -1,23 +1,44 @@
-import api from './api';
+import { api } from './api';
 import { Article } from '../../types';
 import { isAxiosError } from 'axios';
 
 interface ArticlesResponse {
   status: string;
-  data: Article[];
+  data: {
+    data: Article[];
+    meta: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
 }
 
 interface GetArticlesParams {
   page?: number;
   perPage?: number;
+  filters?: {
+    category?: string;
+    search?: string;
+  };
 }
 
-export const getAllArticles = async ({ page = 1, perPage = 12 }: GetArticlesParams = {}): Promise<ArticlesResponse> => {
+export const getAllArticles = async ({ page = 1, perPage = 12, filters }: GetArticlesParams = {}): Promise<ArticlesResponse> => {
   try {
-    const response = await api.get(`/public/articles?page=${page}&per_page=${perPage}`);
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('per_page', perPage.toString());
+
+    if (filters) {
+      if (filters.category) params.append('category', filters.category);
+      if (filters.search) params.append('search', filters.search);
+    }
+
+    const response = await api.get(`/api/v1/public/articles?${params.toString()}`);
     return {
       status: 'success',
-      data: response.data.data
+      data: response.data
     };
   } catch (error) {
     if (isAxiosError(error) && error.response) {
@@ -30,9 +51,22 @@ export const getAllArticles = async ({ page = 1, perPage = 12 }: GetArticlesPara
   }
 };
 
-export const getArticle = async (id: number) => {
-  const response = await api.get(`/public/articles/${id}`);
-  return response.data;
+export const getArticle = async (id: number): Promise<{ status: string; data: Article }> => {
+  try {
+    const response = await api.get(`/api/v1/public/articles/${id}`);
+    return {
+      status: 'success',
+      data: response.data.data
+    };
+  } catch (error) {
+    if (isAxiosError(error) && error.response) {
+      console.error('Error fetching article:', error.response);
+      throw new Error(`Error: ${error.response.data.message}`);
+    } else {
+      console.error("An unknown error occurred");
+      throw new Error('An unexpected error occurred.');
+    }
+  }
 };
 
 export const createArticle = async (articleData: FormData) => {

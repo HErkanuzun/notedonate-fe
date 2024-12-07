@@ -1,23 +1,42 @@
-import api from './api';
+import { api } from './api';
 import { Event } from '../../types';
 import { isAxiosError } from 'axios';
 
 interface EventsResponse {
   status: string;
-  data: Event[];
+  data: {
+    data: Event[];
+    meta: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
 }
 
 interface GetEventsParams {
   page?: number;
   perPage?: number;
+  filters?: {
+    search?: string;
+  };
 }
 
-export const getAllEvents = async ({ page = 1, perPage = 12 }: GetEventsParams = {}): Promise<EventsResponse> => {
+export const getAllEvents = async ({ page = 1, perPage = 12, filters }: GetEventsParams = {}): Promise<EventsResponse> => {
   try {
-    const response = await api.get(`/public/events?page=${page}&per_page=${perPage}`);
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('per_page', perPage.toString());
+
+    if (filters?.search) {
+      params.append('search', filters.search);
+    }
+
+    const response = await api.get(`/api/v1/public/events?${params.toString()}`);
     return {
       status: 'success',
-      data: response.data.data
+      data: response.data
     };
   } catch (error) {
     if (isAxiosError(error) && error.response) {
@@ -30,9 +49,22 @@ export const getAllEvents = async ({ page = 1, perPage = 12 }: GetEventsParams =
   }
 };
 
-export const getEvent = async (id: number) => {
-  const response = await api.get(`/public/events/${id}`);
-  return response.data;
+export const getEvent = async (id: number): Promise<{ status: string; data: Event }> => {
+  try {
+    const response = await api.get(`/api/v1/public/events/${id}`);
+    return {
+      status: 'success',
+      data: response.data.data
+    };
+  } catch (error) {
+    if (isAxiosError(error) && error.response) {
+      console.error('Error fetching event:', error.response);
+      throw new Error(`Error: ${error.response.data.message}`);
+    } else {
+      console.error("An unknown error occurred");
+      throw new Error('An unexpected error occurred.');
+    }
+  }
 };
 
 export const createEvent = async (eventData: FormData) => {

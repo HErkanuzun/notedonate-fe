@@ -1,25 +1,27 @@
 export interface Note {
   id: number;
-  title: string;
-  content: string;
-  university: {
-    id: number;
-    name: string;
+  type: string;
+  links: {
+    self: string;
   };
-  department: {
-    id: number;
-    name: string;
+  attributes: {
+    title: string;
+    content: string;
+    created_at: string;
+    storage_link: string;
+    cover_image: string;
+    category: string;
+    status: string;
+    file_path: string;
+    university?: string;
+    department?: string;
+    year?: string;
+    semester?: string;
+    subject?: string;
+    likes?: number;
+    downloads?: number;
+    author?: string;
   };
-  year: string;
-  semester: string;
-  subject?: string;
-  storage_link?: string;
-  created_at: string;
-  updated_at: string;
-  // Computed properties
-  likes?: number;
-  downloads?: number;
-  author?: string;
 }
 
 export interface Article {
@@ -94,4 +96,21 @@ export interface AuthContextType {
   register: (email: string, password: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+}
+
+export interface Event {
+  id: number;
+  title: string;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  location?: string;
+  type: string;
+  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  isOnline?: boolean;
+  isFeatured?: boolean;
+  imageUrl?: string;
 }

@@ -1,10 +1,18 @@
-import api from './api';
+import { api } from './api';
 import { Exam } from '../../types';
 import { isAxiosError } from 'axios';
 
 interface ExamsResponse {
   status: string;
-  data: Exam[];
+  data: {
+    data: Exam[];
+    meta: {
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    };
+  };
 }
 
 interface GetExamsParams {
@@ -15,6 +23,7 @@ interface GetExamsParams {
     department?: string;
     year?: number;
     semester?: string;
+    search?: string;
   };
 }
 
@@ -29,12 +38,13 @@ export const getAllExams = async ({ page = 1, perPage = 12, filters }: GetExamsP
       if (filters.department) params.append('department', filters.department);
       if (filters.year) params.append('year', filters.year.toString());
       if (filters.semester) params.append('semester', filters.semester);
+      if (filters.search) params.append('search', filters.search);
     }
 
-    const response = await api.get(`/public/exams?${params.toString()}`);
+    const response = await api.get(`/api/v1/public/exams?${params.toString()}`);
     return {
       status: 'success',
-      data: Array.isArray(response.data.data) ? response.data.data : []
+      data: response.data
     };
   } catch (error) {
     if (isAxiosError(error) && error.response) {
@@ -47,9 +57,22 @@ export const getAllExams = async ({ page = 1, perPage = 12, filters }: GetExamsP
   }
 };
 
-export const getExam = async (id: number) => {
-  const response = await api.get(`/public/exams/${id}`);
-  return response.data;
+export const getExam = async (id: number): Promise<{ status: string; data: Exam }> => {
+  try {
+    const response = await api.get(`/api/v1/public/exams/${id}`);
+    return {
+      status: 'success',
+      data: response.data.data
+    };
+  } catch (error) {
+    if (isAxiosError(error) && error.response) {
+      console.error('Error fetching exam:', error.response);
+      throw new Error(`Error: ${error.response.data.message}`);
+    } else {
+      console.error("An unknown error occurred");
+      throw new Error('An unexpected error occurred.');
+    }
+  }
 };
 
 export const createExam = async (examData: FormData) => {

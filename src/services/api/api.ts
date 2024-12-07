@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: 'http://localhost:8000/api/v1',
+export const api = axios.create({
+  baseURL: 'http://localhost:8000',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -10,34 +10,62 @@ const api = axios.create({
 
 // Public endpoints that don't require authentication
 const publicEndpoints = [
-  '/public/articles',
-  '/public/notes',
-  '/public/exams',
-  '/public/events'
+  '/api/v1/public/articles',
+  '/api/v1/public/notes',
+  '/api/v1/public/exams',
+  '/api/v1/public/events'
 ];
 
 // Request interceptor - Add Authorization header
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  // Only add token for non-public endpoints
-  if (token && !publicEndpoints.some(endpoint => config.url?.startsWith(endpoint))) {
+  
+  // Check if the endpoint requires authentication
+  const isPublicEndpoint = publicEndpoints.some(endpoint => 
+    config.url?.includes(endpoint)
+  );
+
+  if (token && !isPublicEndpoint) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
-// Response interceptor - Error handling
+// Response interceptor - Handle common errors
 api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    // Check if the error is 401 and the endpoint is not public
-    if (error.response?.status === 401 && 
-        !publicEndpoints.some(endpoint => error.config.url?.startsWith(endpoint))) {
-     // localStorage.removeItem('token');
-      window.location.href = '/login';
+  response => response,
+  error => {
+    if (error.response) {
+      // Handle specific error cases
+      switch (error.response.status) {
+        case 401:
+          // Unauthorized - Clear token and redirect to login
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          break;
+        case 403:
+          // Forbidden
+          console.error('Access forbidden');
+          break;
+        case 404:
+          // Not found
+          console.error('Resource not found');
+          break;
+        case 422:
+          // Validation error
+          console.error('Validation failed:', error.response.data.errors);
+          break;
+        case 500:
+          // Server error
+          console.error('Server error occurred');
+          break;
+        default:
+          console.error('An error occurred:', error.response.data);
+      }
     }
     return Promise.reject(error);
   }
 );
-
-export default api;
