@@ -15,7 +15,12 @@ import {
   Bell,
   LogOut,
   HelpCircle,
-  Shield
+  Shield,
+  Calendar,
+  Plus,
+  Edit,
+  Trash2,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { UserService } from '../services/api/UserService';
@@ -24,25 +29,46 @@ interface ProfilePageProps {
   isDark: boolean;
 }
 
+interface ContentItem {
+  id: number;
+  title: string;
+  description: string;
+  views: number;
+  likes: number;
+  downloads: number;
+  createdAt: string;
+}
+
 const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('notes'); // notes, articles, exams
+  const [activeTab, setActiveTab] = useState('profile');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editItem, setEditItem] = useState<ContentItem | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<ContentItem | null>(null);
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [isPhoneVerificationOpen, setIsPhoneVerificationOpen] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState<any>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsMenuOpen(false);
+        setIsEditing(false);
+        setShowDeleteModal(false);
+        setIsProfileEditOpen(false);
+        setIsPhoneVerificationOpen(false);
       }
     };
 
     window.addEventListener('keydown', handleEsc);
-
-    return () => {
-      window.removeEventListener('keydown', handleEsc);
-    };
+    return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
   useEffect(() => {
@@ -51,6 +77,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
         if (!user?.id) return;
         const response = await UserService.getUserProfile(user.id);
         setProfileData(response);
+        setFormData({
+          name: response.name,
+          email: response.email,
+          bio: response.bio || '',
+          phone: response.phone || ''
+        });
       } catch (error) {
         console.error('Error fetching profile data:', error);
       }
@@ -68,41 +100,108 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
     }
   };
 
-  const handleMenuItemClick = (callback: () => void) => {
-    setIsMenuOpen(false);
-    callback();
+  const handleEdit = (item: ContentItem) => {
+    setEditItem(item);
+    setIsEditing(true);
   };
 
-  const menuItems = [
+  const handleDelete = (item: ContentItem) => {
+    setItemToDelete(item);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    try {
+      // API call to delete item
+      // await deleteItem(itemToDelete.id);
+      setShowDeleteModal(false);
+      setItemToDelete(null);
+      // Refresh data
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  const handleProfileUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('email', formData.email);
+      data.append('bio', formData.bio);
+      data.append('phone', formData.phone);
+
+      if (fileInputRef.current?.files?.[0]) {
+        data.append('avatar', fileInputRef.current.files[0]);
+      }
+
+      const response = await UserService.updateProfile(data);
+      setProfileData(response.user);
+      setIsProfileEditOpen(false);
+      // Show success message
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      // Show error message
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyPhone = async () => {
+    setIsSubmitting(true);
+    try {
+      await UserService.verifyPhone(verificationCode);
+      const updatedProfile = await UserService.getUserProfile();
+      setProfileData(updatedProfile);
+      setIsPhoneVerificationOpen(false);
+      // Show success message
+    } catch (error) {
+      console.error('Error verifying phone:', error);
+      // Show error message
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      await UserService.resendPhoneVerification();
+      // Show success message
+    } catch (error) {
+      console.error('Error resending verification:', error);
+      // Show error message
+    }
+  };
+
+  const tabs = [
     {
+      id: 'profile',
       icon: <User size={20} />,
-      label: 'Profilim',
-      onClick: () => handleMenuItemClick(() => navigate('/profile'))
+      label: 'Profil Bilgilerim'
     },
     {
-      icon: <Bell size={20} />,
-      label: 'Bildirimler',
-      onClick: () => handleMenuItemClick(() => navigate('/notifications'))
+      id: 'notes',
+      icon: <BookOpen size={20} />,
+      label: 'Notlarım'
     },
     {
-      icon: <Settings size={20} />,
-      label: 'Ayarlar',
-      onClick: () => handleMenuItemClick(() => navigate('/settings'))
+      id: 'articles',
+      icon: <FileText size={20} />,
+      label: 'Makalelerim'
     },
     {
-      icon: <Shield size={20} />,
-      label: 'Gizlilik',
-      onClick: () => handleMenuItemClick(() => navigate('/privacy'))
+      id: 'exams',
+      icon: <GraduationCap size={20} />,
+      label: 'Sınavlarım'
     },
     {
-      icon: <HelpCircle size={20} />,
-      label: 'Yardım',
-      onClick: () => handleMenuItemClick(() => navigate('/help'))
-    },
-    {
-      icon: <LogOut size={20} />,
-      label: 'Çıkış Yap',
-      onClick: () => handleMenuItemClick(handleLogout)
+      id: 'events',
+      icon: <Calendar size={20} />,
+      label: 'Etkinliklerim'
     }
   ];
 
@@ -129,88 +228,483 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
     }
   ];
 
-  const tabs = [
-    {
-      id: 'notes',
-      icon: <BookOpen size={20} />,
-      label: 'Notlar',
-      content: profileData?.notes || []
-    },
-    {
-      id: 'articles',
-      icon: <FileText size={20} />,
-      label: 'Makaleler',
-      content: profileData?.articles || []
-    },
-    {
-      id: 'exams',
-      icon: <GraduationCap size={20} />,
-      label: 'Sınavlar',
-      content: profileData?.exams || []
-    }
-  ];
-
-  return (
-    <div className="min-h-screen">
-      {/* Overlay */}
-      {isMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40"
-          onClick={() => setIsMenuOpen(false)}
-        />
-      )}
-
-      {/* Hamburger Menu */}
-      <div 
-        className={`fixed top-0 right-0 h-screen w-64 transform transition-transform duration-300 ease-in-out ${
-          isMenuOpen ? 'translate-x-0' : 'translate-x-full'
-        } ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-xl z-50`}
-      >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
-              Menü
-            </h2>
-            <button
-              onClick={() => setIsMenuOpen(false)}
-              className={`p-2 rounded-full hover:bg-gray-100 ${isDark ? 'hover:bg-gray-700' : ''}`}
-            >
-              <ChevronRight />
-            </button>
-          </div>
-          <div className="space-y-2">
-            {menuItems.map((item, index) => (
-              <button
-                key={index}
-                onClick={item.onClick}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+  const renderContent = () => {
+    const content = profileData?.[activeTab] || [];
+    
+    if (activeTab === 'profile') {
+      return (
+        <div className={`bg-white dark:bg-gray-800 rounded-lg shadow p-6`}>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ad Soyad</label>
+              <input 
+                type="text" 
+                value={profileData?.name || ''} 
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
                   isDark 
-                    ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
-                    : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
                 }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">E-posta</label>
+              <input 
+                type="email" 
+                value={profileData?.email || ''} 
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Biyografi</label>
+              <textarea 
+                value={profileData?.bio || ''} 
+                rows={4}
+                className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+              />
+            </div>
+            <div className="flex justify-end">
+              <button className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                Kaydet
               </button>
-            ))}
+            </div>
           </div>
         </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+            {tabs.find(tab => tab.id === activeTab)?.label}
+          </h2>
+          <button 
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            onClick={() => setIsEditing(true)}
+          >
+            <Plus size={20} />
+            <span>Yeni Ekle</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {content.map((item: ContentItem) => (
+            <div
+              key={item.id}
+              className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}
+            >
+              <div className="flex justify-between items-start mb-4">
+                <h3 className={`text-lg font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                  {item.title}
+                </h3>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(item)}
+                    className="p-1.5 text-gray-500 hover:text-blue-500 rounded-lg hover:bg-gray-100"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item)}
+                    className="p-1.5 text-gray-500 hover:text-red-500 rounded-lg hover:bg-gray-100"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+              
+              <p className={`mb-4 line-clamp-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                {item.description}
+              </p>
+              
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <span className="flex items-center gap-1">
+                    <Eye size={16} />
+                    {item.views}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <ThumbsUp size={16} />
+                    {item.likes}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Download size={16} />
+                    {item.downloads}
+                  </span>
+                </div>
+                <button
+                  className={`px-4 py-2 rounded-lg ${
+                    isDark
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-blue-500 hover:bg-blue-600'
+                  } text-white transition-colors`}
+                >
+                  Görüntüle
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+    );
+  };
+
+  return (
+    <div className={`min-h-screen ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      {/* Edit Modal */}
+      {isEditing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`w-full max-w-2xl ${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl p-6`}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                {editItem ? 'Düzenle' : 'Yeni Ekle'}
+              </h2>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditItem(null);
+                }}
+                className={`p-2 rounded-full ${
+                  isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
+              >
+                <X size={20} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Başlık
+                </label>
+                <input 
+                  type="text"
+                  defaultValue={editItem?.title}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+              
+              <div>
+                <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Açıklama
+                </label>
+                <textarea 
+                  defaultValue={editItem?.description}
+                  rows={4}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+              
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditItem(null);
+                  }}
+                  className={`px-4 py-2 rounded-lg ${
+                    isDark 
+                      ? 'text-gray-300 hover:bg-gray-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  İptal
+                </button>
+                <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                  Kaydet
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`w-full max-w-md ${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl p-6`}>
+            <h2 className={`text-xl font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+              Silme Onayı
+            </h2>
+            <p className={isDark ? 'text-gray-300' : 'text-gray-600'}>
+              Bu öğeyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </p>
+            <div className="flex justify-end gap-4 mt-6">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setItemToDelete(null);
+                }}
+                className={`px-4 py-2 rounded-lg ${
+                  isDark 
+                    ? 'text-gray-300 hover:bg-gray-700' 
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                İptal
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Edit Modal */}
+      {isProfileEditOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`w-full max-w-2xl ${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl p-6`}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Profil Düzenle
+              </h2>
+              <button
+                onClick={() => setIsProfileEditOpen(false)}
+                className={`p-2 rounded-full ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <X size={20} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
+              </button>
+            </div>
+
+            <form onSubmit={handleProfileUpdate} className="space-y-4">
+              <div className="flex justify-center mb-6">
+                <div className="relative">
+                  <img
+                    src={profileData?.avatar_url || 'https://via.placeholder.com/100'}
+                    alt="Profile"
+                    className="w-24 h-24 rounded-full object-cover"
+                  />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files?.[0]) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                          if (e.target?.result) {
+                            const img = document.querySelector('#preview-image') as HTMLImageElement;
+                            if (img) {
+                              img.src = e.target.result as string;
+                            }
+                          }
+                        };
+                        reader.readAsDataURL(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`absolute bottom-0 right-0 p-2 rounded-full ${
+                      isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Edit size={16} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Ad Soyad
+                </label>
+                <input
+                  type="text"
+                  value={formData?.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  E-posta
+                </label>
+                <input
+                  type="email"
+                  value={formData?.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Telefon
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={formData?.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                      isDark 
+                        ? 'bg-gray-700 border-gray-600 text-white' 
+                        : 'bg-white border-gray-300 text-gray-900'
+                    }`}
+                  />
+                  {profileData?.phone_verified ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Onaylı
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsPhoneVerificationOpen(true)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                      Onayla
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
+                  Biyografi
+                </label>
+                <textarea
+                  value={formData?.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  rows={4}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                    isDark 
+                      ? 'bg-gray-700 border-gray-600 text-white' 
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
+                />
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setIsProfileEditOpen(false)}
+                  className={`px-4 py-2 rounded-lg ${
+                    isDark 
+                      ? 'text-gray-300 hover:bg-gray-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Kaydediliyor...' : 'Kaydet'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Phone Verification Modal */}
+      {isPhoneVerificationOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className={`w-full max-w-md ${isDark ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-xl p-6`}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className={`text-xl font-semibold ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Telefon Doğrulama
+              </h2>
+              <button
+                onClick={() => setIsPhoneVerificationOpen(false)}
+                className={`p-2 rounded-full ${isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}
+              >
+                <X size={20} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
+              </button>
+            </div>
+
+            <p className={`mb-4 ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
+              {formData?.phone} numaralı telefonunuza gönderilen 6 haneli doğrulama kodunu giriniz.
+            </p>
+
+            <div className="space-y-4">
+              <input
+                type="text"
+                maxLength={6}
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                className={`block w-full text-center text-2xl tracking-widest rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
+                  isDark 
+                    ? 'bg-gray-700 border-gray-600 text-white' 
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="000000"
+              />
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className={`text-sm ${isDark ? 'text-blue-400' : 'text-blue-600'} hover:underline`}
+                >
+                  Kodu tekrar gönder
+                </button>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  onClick={() => setIsPhoneVerificationOpen(false)}
+                  className={`px-4 py-2 rounded-lg ${
+                    isDark 
+                      ? 'text-gray-300 hover:bg-gray-700' 
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleVerifyPhone}
+                  disabled={isSubmitting || verificationCode.length !== 6}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Doğrulanıyor...' : 'Doğrula'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
         {/* Profile Header */}
         <div className={`relative p-6 rounded-xl mb-8 ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-          <button
-            onClick={() => setIsMenuOpen(true)}
-            className={`absolute top-4 right-4 p-2 rounded-full ${
-              isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
-          >
-            <Menu size={24} />
-          </button>
-          
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             <div className="relative">
               <img
                 src={profileData?.avatar_url || 'https://via.placeholder.com/100'}
@@ -218,25 +712,31 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
                 className="w-24 h-24 rounded-full object-cover"
               />
               <button 
+                onClick={() => setIsProfileEditOpen(true)}
                 className={`absolute bottom-0 right-0 p-2 rounded-full ${
-                  isDark ? 'bg-gray-700' : 'bg-gray-100'
+                  isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'
                 }`}
               >
-                <Settings size={16} />
+                <Settings size={16} className={isDark ? 'text-gray-300' : 'text-gray-600'} />
               </button>
             </div>
             
-            <div>
+            <div className="flex-1">
               <h1 className={`text-2xl font-bold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
                 {profileData?.name || 'Kullanıcı Adı'}
               </h1>
               <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                 {profileData?.bio || 'Henüz bir biyografi eklenmemiş.'}
               </p>
-              <div className="flex gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {stats.map((stat, index) => (
-                  <div key={index} className="text-center">
-                    <div className="flex items-center gap-1">
+                  <div 
+                    key={index} 
+                    className={`text-center p-2 rounded-lg ${
+                      isDark ? 'bg-gray-700' : 'bg-gray-50 hover:bg-gray-100'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-1 mb-1">
                       {stat.icon}
                       <span className={`font-bold ${isDark ? 'text-white' : 'text-gray-800'}`}>
                         {stat.value}
@@ -253,16 +753,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
         </div>
 
         {/* Content Tabs */}
-        <div className="mb-6">
-          <div className="flex gap-4 border-b border-gray-200">
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2 border-b border-gray-200">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
                   activeTab === tab.id
-                    ? `border-blue-500 ${isDark ? 'text-blue-400' : 'text-blue-600'}`
-                    : `border-transparent ${isDark ? 'text-gray-400' : 'text-gray-600'}`
+                    ? isDark 
+                      ? 'border-blue-500 text-blue-400' 
+                      : 'border-blue-500 text-blue-600'
+                    : isDark
+                      ? 'border-transparent text-gray-400 hover:text-gray-300'
+                      : 'border-transparent text-gray-600 hover:text-gray-900'
                 }`}
               >
                 {tab.icon}
@@ -272,43 +776,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
           </div>
         </div>
 
-        {/* Content Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tabs.find(tab => tab.id === activeTab)?.content.map((item: any, index: number) => (
-            <div
-              key={index}
-              className={`p-4 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}
-            >
-              <h3 className={`text-lg font-semibold mb-2 ${isDark ? 'text-white' : 'text-gray-800'}`}>
-                {item.title}
-              </h3>
-              <p className={`mb-4 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                {item.description}
-              </p>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1">
-                    <Eye size={16} />
-                    {item.views}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <ThumbsUp size={16} />
-                    {item.likes}
-                  </span>
-                </div>
-                <button
-                  className={`px-4 py-2 rounded-lg ${
-                    isDark
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-blue-500 hover:bg-blue-600'
-                  } text-white transition-colors`}
-                >
-                  Görüntüle
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Tab Content */}
+        {renderContent()}
       </div>
     </div>
   );
