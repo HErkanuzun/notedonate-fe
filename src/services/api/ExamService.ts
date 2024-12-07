@@ -1,4 +1,4 @@
-import { api } from './api';
+import api from './api';
 import { Exam } from '../../types';
 import { isAxiosError } from 'axios';
 
