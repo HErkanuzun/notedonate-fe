@@ -55,6 +55,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<any>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>({
+    total_notes: 0,
+    total_articles: 0,
+    total_exams: 0,
+    total_events: 0,
+    total_followers: 0,
+    total_following: 0,
+    total_points: 0
+  });
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -90,6 +100,29 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
 
     fetchProfileData();
   }, [user]);
+
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      try {
+        const response = await UserService.getUserAchievements();
+        setAchievements(response.data);
+      } catch (error) {
+        console.error('Error fetching achievements:', error);
+      }
+    };
+
+    const fetchStats = async () => {
+      try {
+        const response = await UserService.getUserStats();
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      }
+    };
+
+    fetchAchievements();
+    fetchStats();
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -777,6 +810,88 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ isDark }) => {
         </div>
 
         {/* Tab Content */}
+        {activeTab === 'profile' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Stats Cards */}
+            <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                İstatistikler
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Notlar</p>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_notes}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Makaleler</p>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_articles}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Sınavlar</p>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_exams}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Etkinlikler</p>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_events}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Social Stats */}
+            <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Sosyal
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Takipçiler</p>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_followers}</p>
+                </div>
+                <div>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>Takip Edilenler</p>
+                  <p className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_following}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Points Card */}
+            <div className={`p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Toplam Puan
+              </h3>
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{stats.total_points}</p>
+                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>puan</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Achievements */}
+            <div className={`col-span-full p-6 rounded-lg ${isDark ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
+              <h3 className={`text-lg font-semibold mb-4 ${isDark ? 'text-white' : 'text-gray-800'}`}>
+                Başarılar
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                {achievements.map((achievement) => (
+                  <div key={achievement.id} className="text-center">
+                    <div className={`w-16 h-16 mx-auto mb-2 rounded-full flex items-center justify-center ${
+                      isDark ? 'bg-gray-700' : 'bg-gray-100'
+                    }`}>
+                      <img src={achievement.icon} alt={achievement.title} className="w-10 h-10" />
+                    </div>
+                    <p className={`text-sm font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {achievement.title}
+                    </p>
+                    <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {achievement.points} puan
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
         {renderContent()}
       </div>
     </div>
